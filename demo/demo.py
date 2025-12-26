@@ -80,7 +80,7 @@ def do_test(args, cfg, model):
         image = aug_input.image
 
         batched = [{
-            'image': torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1))).cuda(), 
+            'image': torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1))).cpu(), 
             'height': image_shape[0], 'width': image_shape[1], 'K': K, 'category_list': cats
         }]
         dets = model(batched)[0]['instances']

@@ -1,5 +1,4 @@
 # folders or files
-datasets/*
 cubercnn/modeling/backbone/checkpoint_weights/*
 .vscode/
 .ipynb_checkpoints/
@@ -7,7 +6,6 @@ cubercnn/modeling/backbone/checkpoint_weights/*
 output/
 cubercnn/external/
 slurm/
-datasets
 unused/
 checkpoints/
 ovmono3d_data/

@@ -171,7 +171,7 @@ class ROIHeads3DGDINO(ROIHeads3D):
             return pred_instances, {}
         
 
-def get_grounding_output(model, image, caption, box_threshold, text_threshold=None, with_logits=True, cpu_only=False, token_spans=None):
+def get_grounding_output(model, image, caption, box_threshold, text_threshold=None, with_logits=True, cpu_only=True, token_spans=None):
     assert text_threshold is not None or token_spans is not None, "text_threshould and token_spans should not be None at the same time!"
     cap_list = [cat[0] for cat in caption ]
     caption = " . ".join(cap_list)

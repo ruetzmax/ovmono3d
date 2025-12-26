@@ -321,7 +321,7 @@ def draw_scene_view(im, K, meshes, text=None, scale=1000, R=None, T=None, zoom_f
 
     else:
         
-        meshes_scene = join_meshes_as_scene(meshes).cuda()
+        meshes_scene = join_meshes_as_scene(meshes).cpu()
         device = meshes_scene.device
         meshes_scene.textures = meshes_scene.textures.to(device)
 
