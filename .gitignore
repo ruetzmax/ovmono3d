@@ -17,6 +17,5 @@ ovmono3d
 */output*/*
 *~
 *.so
-*.ipynb
 *.pth
 *.zip

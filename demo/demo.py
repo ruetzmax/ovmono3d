@@ -6,6 +6,8 @@ import sys
 import numpy as np
 from collections import OrderedDict
 import torch
+import pickle
+
 
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
@@ -46,6 +48,8 @@ def do_test(args, cfg, model):
     augmentations = T.AugmentationList([T.ResizeShortestEdge(min_size, max_size, "choice")])
 
     util.mkdir_if_missing(output_dir)
+    
+    all_dets = []
 
     for path in tqdm(list_of_ims):
         im_name = util.file_parts(path)[1]
@@ -90,6 +94,16 @@ def do_test(args, cfg, model):
         meshes_text = []
 
         if n_det > 0:
+            dets_dict = {
+                'pred_bbox3D': dets.pred_bbox3D.cpu().numpy(),
+                'pred_center_cam': dets.pred_center_cam.cpu().numpy(),
+                'pred_center_2D': dets.pred_center_2D.cpu().numpy(),
+                'pred_dimensions': dets.pred_dimensions.cpu().numpy(),
+                'pred_pose': dets.pred_pose.cpu().numpy(),
+                'scores': dets.scores.cpu().numpy(),
+                'pred_classes': dets.pred_classes.cpu().numpy()
+            }
+            all_dets.append(dets_dict)
             for idx, (corners3D, center_cam, center_2D, dimensions, pose, score, cat_idx) in enumerate(zip(
                     dets.pred_bbox3D, dets.pred_center_cam, dets.pred_center_2D, dets.pred_dimensions, 
                     dets.pred_pose, dets.scores, dets.pred_classes
@@ -106,6 +120,8 @@ def do_test(args, cfg, model):
                 color = [c/255.0 for c in util.get_color(idx)]
                 box_mesh = util.mesh_cuboid(bbox3D, pose.tolist(), color=color)
                 meshes.append(box_mesh)
+        else:
+            all_dets.append([])
         
         print('File: {} with {} dets'.format(im_name, len(meshes)))
 
@@ -120,6 +136,9 @@ def do_test(args, cfg, model):
             # util.imwrite(im_topdown, os.path.join(output_dir, im_name+'_novel.jpg'))
         else:
             util.imwrite(im, os.path.join(output_dir, im_name+'_boxes.jpg'))
+    
+    with open(os.path.join(output_dir, 'detections.pkl'), 'wb') as f:
+        pickle.dump(all_dets, f)
 
 def setup(args):
     """
