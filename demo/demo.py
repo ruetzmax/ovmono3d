@@ -94,48 +94,61 @@ def do_test(args, cfg, model):
         meshes_text = []
 
         if n_det > 0:
-            dets_dict = {
-                'pred_bbox3D': dets.pred_bbox3D.cpu().numpy(),
-                'pred_center_cam': dets.pred_center_cam.cpu().numpy(),
-                'pred_center_2D': dets.pred_center_2D.cpu().numpy(),
-                'pred_dimensions': dets.pred_dimensions.cpu().numpy(),
-                'pred_pose': dets.pred_pose.cpu().numpy(),
-                'scores': dets.scores.cpu().numpy(),
-                'pred_classes': dets.pred_classes.cpu().numpy()
-            }
-            all_dets.append(dets_dict)
+            
+            frame_verts2d = []
+            frame_verts3d = []
             for idx, (corners3D, center_cam, center_2D, dimensions, pose, score, cat_idx) in enumerate(zip(
                     dets.pred_bbox3D, dets.pred_center_cam, dets.pred_center_2D, dets.pred_dimensions, 
                     dets.pred_pose, dets.scores, dets.pred_classes
-                )):
-
-                # skip
-                if score < thres:
-                    continue
-                
+                )):    
                 cat = cats[cat_idx]
 
                 bbox3D = center_cam.tolist() + dimensions.tolist()
                 meshes_text.append('{} {:.2f}'.format(cat, score))
                 color = [c/255.0 for c in util.get_color(idx)]
                 box_mesh = util.mesh_cuboid(bbox3D, pose.tolist(), color=color)
+                
+                # get 2d bb
+                verts3D = box_mesh.verts_padded()[0].numpy()
+                verts2D = (K @ verts3D.T) / verts3D[:, -1]
+                frame_verts3d.append(verts3D)
+                frame_verts2d.append(verts2D)
+                
+                # skip
+                if score < thres:
+                    continue
+                
                 meshes.append(box_mesh)
+                
+                
+            frame_dets = {
+                'pred_bbox3D': dets.pred_bbox3D.cpu().numpy(),
+                'pred_center_cam': dets.pred_center_cam.cpu().numpy(),
+                'pred_center_2D': dets.pred_center_2D.cpu().numpy(),
+                'pred_dimensions': dets.pred_dimensions.cpu().numpy(),
+                'pred_pose': dets.pred_pose.cpu().numpy(),
+                'scores': dets.scores.cpu().numpy(),
+                'pred_classes': dets.pred_classes.cpu().numpy(),
+                'pred_verts2d': np.array(frame_verts2d),
+                'pred_verts3d': np.array(frame_verts3d)
+            }
+            all_dets.append(frame_dets)
         else:
             all_dets.append([])
         
         print('File: {} with {} dets'.format(im_name, len(meshes)))
 
-        if len(meshes) > 0:
-            im_drawn_rgb, im_topdown, _ = vis.draw_scene_view(im, K, meshes, text=meshes_text, scale=im.shape[0], blend_weight=0.5, blend_weight_overlay=0.85)
-            im_concat = np.concatenate((im_drawn_rgb, im_topdown), axis=1)
-            if args.display:
-                vis.imshow(im_concat)
+        # if len(meshes) > 0:
+        #     im_drawn_rgb, im_topdown, _ = vis.draw_scene_view(im, K, meshes, text=meshes_text, scale=im.shape[0], blend_weight=0.5, blend_weight_overlay=0.85)
+        #     im_concat = np.concatenate((im_drawn_rgb, im_topdown), axis=1)
+        #     if args.display:
+        #         vis.imshow(im_concat)
 
-            util.imwrite(im_concat, os.path.join(output_dir, im_name+'_combine.jpg'))
-            # util.imwrite(im_drawn_rgb, os.path.join(output_dir, im_name+'_boxes.jpg'))
-            # util.imwrite(im_topdown, os.path.join(output_dir, im_name+'_novel.jpg'))
-        else:
-            util.imwrite(im, os.path.join(output_dir, im_name+'_boxes.jpg'))
+        #     util.imwrite(im_concat, os.path.join(output_dir, im_name+'_combine.jpg'))
+        #     # util.imwrite(im_drawn_rgb, os.path.join(output_dir, im_name+'_boxes.jpg'))
+        #     # util.imwrite(im_topdown, os.path.join(output_dir, im_name+'_novel.jpg'))
+        # else:
+        #     util.imwrite(im, os.path.join(output_dir, im_name+'_boxes.jpg'))
     
     with open(os.path.join(output_dir, 'detections.pkl'), 'wb') as f:
         pickle.dump(all_dets, f)
